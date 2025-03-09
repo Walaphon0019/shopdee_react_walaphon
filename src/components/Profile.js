@@ -18,6 +18,7 @@ import {
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,24 +31,34 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    console.log(`Fetching data from API: http://localhost:4000/api/profile/${id}`);
+    if (!id) {
+      setError("❌ ไม่พบ ID ของลูกค้า");
+      setLoading(false);
+      return;
+    }
+
+    console.log(`📌 Fetching data from API: http://localhost:4000/api/profile/${id}`);
 
     axios
       .get(`http://localhost:4000/api/profile/${id}`)
       .then((response) => {
         console.log("📌 API Response:", response.data);
+        if (!response.data) {
+          throw new Error("❌ ข้อมูลลูกค้าว่างเปล่า");
+        }
+
         setProfile(response.data);
         setFormData({
-          firstName: response.data.firstName,
-          lastName: response.data.lastName,
-          email: response.data.email,
-          mobilePhone: response.data.mobilePhone,
+          firstName: response.data.firstName || "",
+          lastName: response.data.lastName || "",
+          email: response.data.email || "",
+          mobilePhone: response.data.mobilePhone || "",
         });
         setLoading(false);
       })
       .catch((err) => {
         console.error("❌ API Error:", err);
-        setError(err.response ? err.response.data.message : "เกิดข้อผิดพลาด");
+        setError(err.response?.data?.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
         setLoading(false);
       });
   }, [id]);
@@ -75,19 +86,21 @@ const Profile = () => {
       })
       .catch((err) => {
         console.error("❌ Update Error:", err);
-        setError(err.response ? err.response.data.message : "เกิดข้อผิดพลาด");
+        setError(err.response?.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       });
   };
 
   const handleBackClick = () => {
-    navigate('/homepage');
+    navigate("/homepage");
   };
 
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
-  if (!profile) return <Alert severity="warning">ไม่พบข้อมูล</Alert>;
+  if (!profile) return <Alert severity="warning">⚠️ ไม่พบข้อมูลลูกค้า</Alert>;
 
-  const profileImage = `http://localhost:4000/api/profile/image/${profile.imageFile}`;
+  const profileImage = profile.imageFile
+    ? `http://localhost:4000/api/profile/image/${profile.imageFile}`
+    : "/default-profile.png"; // ใช้รูปค่าเริ่มต้นถ้าไม่มี
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
@@ -96,9 +109,10 @@ const Profile = () => {
           <Box display="flex" flexDirection="column" alignItems="center">
             <Avatar src={profileImage} sx={{ m: 1, width: 100, height: 100 }} />
             <Typography variant="h5" component="div" gutterBottom>
-              โปรไฟล์ลูกค้า
+              📌 โปรไฟล์ลูกค้า
             </Typography>
           </Box>
+
           {isEditing ? (
             <form onSubmit={handleFormSubmit}>
               <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -140,7 +154,7 @@ const Profile = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Button type="submit" variant="contained" color="primary">
-                    บันทึก
+                    💾 บันทึก
                   </Button>
                   <Button
                     variant="outlined"
@@ -148,7 +162,7 @@ const Profile = () => {
                     sx={{ ml: 2 }}
                     onClick={handleEditToggle}
                   >
-                    ยกเลิก
+                    ❌ ยกเลิก
                   </Button>
                 </Grid>
               </Grid>
@@ -157,22 +171,22 @@ const Profile = () => {
             <Grid container spacing={2} sx={{ mt: 2 }}>
               <Grid item xs={12}>
                 <Typography variant="body1" color="textSecondary">
-                  <strong>รหัสลูกค้า:</strong> {profile.custID}
+                  <strong>🔹 รหัสลูกค้า:</strong> {profile.custID}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="body1" color="textSecondary">
-                  <strong>ชื่อ:</strong> {profile.firstName} {profile.lastName}
+                  <strong>🔹 ชื่อ:</strong> {profile.firstName} {profile.lastName}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="body1" color="textSecondary">
-                  <strong>Email:</strong> {profile.email}
+                  <strong>🔹 Email:</strong> {profile.email}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="body1" color="textSecondary">
-                  <strong>เบอร์โทรศัพท์:</strong> {profile.mobilePhone}
+                  <strong>🔹 เบอร์โทรศัพท์:</strong> {profile.mobilePhone}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
@@ -182,13 +196,14 @@ const Profile = () => {
               </Grid>
               <Grid item xs={12}>
                 <Button variant="contained" color="primary" onClick={handleEditToggle}>
-                  แก้ไขโปรไฟล์
+                  ✏️ แก้ไขโปรไฟล์
                 </Button>
               </Grid>
             </Grid>
           )}
+
           <Button variant="outlined" color="primary" sx={{ mt: 2 }} onClick={handleBackClick}>
-            ย้อนกลับ
+            🔙 ย้อนกลับ
           </Button>
         </CardContent>
       </Card>
